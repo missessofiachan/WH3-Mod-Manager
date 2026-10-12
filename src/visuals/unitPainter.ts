@@ -482,7 +482,7 @@ export const sampleUnitPainterStrokeSegment = (
 
 const sanitizeExportFileName = (value: string) => {
   const trimmed = value.replace(/[?#].*$/, "").split(/[\\/]/).pop() || "painted_texture";
-  const stem = trimmed.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9._-]+/g, "_").replace(/^[_\.]+|[_\.]+$/g, "");
+  const stem = trimmed.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9._-]+/g, "_").replace(/^[_.]+|[_.]+$/g, "");
   return `${stem || "painted_texture"}.rgba`;
 };
 
@@ -4321,7 +4321,7 @@ export class UnitPainterSession {
         sourceVirtualPath: target.sourceVirtualPath,
         width: target.width,
         height: target.height,
-        rgbaBytes: target.data,
+        rgbaBytes: target.data.slice(),
       });
     }
     return output;

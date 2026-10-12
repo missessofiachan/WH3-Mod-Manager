@@ -7,7 +7,7 @@ import appData from "../src/appData";
 import { clearStartposRegionSlotTemplatesCache, loadStartposRegionSlotTemplates } from "../src/esfMap/loader";
 
 const mocked = vi.hoisted(() => ({
-  readFromExistingPack: vi.fn(),
+  readPackedFileBuffersFromIndex: vi.fn(),
   readPack: vi.fn(),
   extractCampaignTableIdentity: vi.fn(),
   extractStartposRegionSlotTemplates: vi.fn(),
@@ -16,7 +16,7 @@ const mocked = vi.hoisted(() => ({
 }));
 
 vi.mock("../src/packFileSerializer", () => ({
-  readFromExistingPack: mocked.readFromExistingPack,
+  readPackedFileBuffersFromIndex: mocked.readPackedFileBuffersFromIndex,
   readPack: mocked.readPack,
 }));
 
@@ -46,12 +46,13 @@ afterEach(async () => {
 describe("startpos-derived Buildings inputs", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocked.readFromExistingPack.mockImplementation(async (pack: any, options: any) => ({
-      ...pack,
-      packedFiles: pack.packedFiles.map((file: any) =>
-        options.filesToRead?.includes(file.name) ? { ...file, buffer: Buffer.from(file.name) } : file,
-      ),
-    }));
+    mocked.readPackedFileBuffersFromIndex.mockImplementation(async (_pack: any, fileNames: string[]) => {
+      const result = new Map<string, Buffer>();
+      for (const name of fileNames) {
+        result.set(name, Buffer.from(name));
+      }
+      return result;
+    });
     mocked.readPack.mockRejectedValue(new Error("unexpected uncached pack read"));
     mocked.extractCampaignTableIdentity.mockImplementation((buffer: Buffer) => ({
       campaignName: buffer.toString(),
@@ -92,8 +93,8 @@ describe("startpos-derived Buildings inputs", () => {
 
     expect(first).toHaveLength(2);
     expect(second).toEqual(first);
-    expect(mocked.readFromExistingPack).toHaveBeenCalledTimes(1);
-    expect(mocked.readFromExistingPack.mock.calls[0][1].filesToRead).toEqual(startposFiles);
+    expect(mocked.readPackedFileBuffersFromIndex).toHaveBeenCalledTimes(1);
+    expect(mocked.readPackedFileBuffersFromIndex.mock.calls[0][1]).toEqual(startposFiles);
     expect(mocked.readPack).not.toHaveBeenCalled();
   });
 
@@ -121,6 +122,6 @@ describe("startpos-derived Buildings inputs", () => {
     await fs.promises.appendFile(modPath, "changed");
     await loadStartposRegionSlotTemplates([mod]);
 
-    expect(mocked.readFromExistingPack).toHaveBeenCalledTimes(2);
+    expect(mocked.readPackedFileBuffersFromIndex).toHaveBeenCalledTimes(2);
   });
 });

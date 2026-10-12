@@ -135,30 +135,37 @@ const flattenView = (view: BuildingsRegionView) => {
 
 describe.skipIf(!haveDumps)("buildings derivation against the in-game Altdorf panel", () => {
   const tables: BuildingsTableRows = {};
-  for (const tableName of BUILDINGS_TABLES) tables[tableName] = readTsvTable(tableName);
-  // The DB dump has no start_pos_* tables. Supply the rows extracted from the real startpos.esf.
-  const startpos = fs.readFileSync(STARTPOS_FILE);
-  const identity = extractCampaignTableIdentity(startpos, parseEsfDocument(startpos));
-  const opened = openEsfBuffer(startpos);
-  tables.start_pos_region_slot_templates_tables = extractStartposRegionSlotTemplates(
-    opened.buffer,
-    parseEsfDocument(opened.buffer),
-    identity?.campaignName ?? CAMPAIGN,
-  ).map((row) => ({
-    campaign: row.campaign,
-    region: row.region,
-    slot_template: row.slotTemplate,
-    slot_type: row.slotType,
-  }));
-  const data = buildBuildingsData(tables, () => undefined);
-  const view = resolveRegionBuildings(data, {
-    campaign: CAMPAIGN,
-    region: REGION,
-    culture: CULTURE,
-    subculture: SUBCULTURE,
-  });
-  const truth = readGroundTruth();
-  const ours = flattenView(view);
+  let data: ReturnType<typeof buildBuildingsData>;
+  let view: BuildingsRegionView;
+  let truth: ReturnType<typeof readGroundTruth>;
+  let ours: ReturnType<typeof flattenView>;
+
+  if (haveDumps) {
+    for (const tableName of BUILDINGS_TABLES) tables[tableName] = readTsvTable(tableName);
+    // The DB dump has no start_pos_* tables. Supply the rows extracted from the real startpos.esf.
+    const startpos = fs.readFileSync(STARTPOS_FILE);
+    const identity = extractCampaignTableIdentity(startpos, parseEsfDocument(startpos));
+    const opened = openEsfBuffer(startpos);
+    tables.start_pos_region_slot_templates_tables = extractStartposRegionSlotTemplates(
+      opened.buffer,
+      parseEsfDocument(opened.buffer),
+      identity?.campaignName ?? CAMPAIGN,
+    ).map((row) => ({
+      campaign: row.campaign,
+      region: row.region,
+      slot_template: row.slotTemplate,
+      slot_type: row.slotType,
+    }));
+    data = buildBuildingsData(tables, () => undefined);
+    view = resolveRegionBuildings(data, {
+      campaign: CAMPAIGN,
+      region: REGION,
+      culture: CULTURE,
+      subculture: SUBCULTURE,
+    });
+    truth = readGroundTruth();
+    ours = flattenView(view);
+  }
 
   it("gets the region's slots from the supplied startpos rows", () => {
     expect(view.slotTemplates.map((slot) => ({ slotType: slot.slotType, slotTemplate: slot.slotTemplate }))).toEqual(

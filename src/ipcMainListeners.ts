@@ -188,7 +188,7 @@ import bs from "binary-search";
 import { compress as zstdCompress, decompress as zstdDecompress } from "@mongodb-js/zstd";
 import * as cheerio from "cheerio";
 import { execFile } from "child_process";
-import chokidar from "chokidar";
+import chokidar, { type FSWatcher } from "chokidar";
 import { format } from "date-fns";
 import electronLog from "electron-log/main";
 import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from "electron";
@@ -457,11 +457,11 @@ const resolveSkillGenerationTemplate = (
     .replaceAll("${r}", variables.row)
     .replaceAll("${column}", variables.column)
     .replaceAll("${c}", variables.column);
-let contentWatcher: chokidar.FSWatcher | undefined;
-let dataWatcher: chokidar.FSWatcher | undefined;
-let downloadsWatcher: chokidar.FSWatcher | undefined;
-let mergedWatcher: chokidar.FSWatcher | undefined;
-let customModFoldersWatcher: chokidar.FSWatcher | undefined;
+let contentWatcher: FSWatcher | undefined;
+let dataWatcher: FSWatcher | undefined;
+let downloadsWatcher: FSWatcher | undefined;
+let mergedWatcher: FSWatcher | undefined;
+let customModFoldersWatcher: FSWatcher | undefined;
 /**
  * Opens a pack in the viewer, published by registerIpcMainListeners.
  *
@@ -14488,8 +14488,7 @@ export const registerIpcMainListeners = (mainWindow: Electron.CrossProcessExport
         const maxConcurrentWrites = 8;
         const pendingWrites = new Set<Promise<void>>();
         const enqueueWrite = async (name: string, outputPath: string, contents: Buffer) => {
-          let writePromise!: Promise<void>;
-          writePromise = writeOutput(name, outputPath, contents).finally(() => {
+          const writePromise: Promise<void> = writeOutput(name, outputPath, contents).finally(() => {
             pendingWrites.delete(writePromise);
           });
           pendingWrites.add(writePromise);

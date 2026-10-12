@@ -5,7 +5,7 @@ import installExtension, { REACT_DEVELOPER_TOOLS, REDUX_DEVTOOLS } from "electro
 import fetch from "electron-fetch";
 import electronIsDev from "electron-is-dev";
 import * as fs from "fs";
-import { updateAvailable } from "gh-release-fetch";
+import semver from "semver";
 import { version } from "../package.json";
 import appData from "./appData";
 import windowStateKeeper from "electron-window-state";
@@ -367,19 +367,23 @@ if (!gotTheLock) {
 
       let modUpdatedExists = { updateExists: false } as ModUpdateExists;
 
-      const isAvailable = await updateAvailable("Shazbot/WH3-Mod-Manager", version);
-      if (!isAvailable) return modUpdatedExists;
+      try {
+        const res = await fetch(`https://api.github.com/repos/Shazbot/WH3-Mod-Manager/releases/latest`);
+        const body = (await res.json()) as {
+          tag_name?: string;
+          html_url?: string;
+          assets?: Array<{
+            name?: string;
+            content_type: string;
+            browser_download_url: string;
+          }>;
+        };
 
-      await fetch(`https://api.github.com/repos/Shazbot/WH3-Mod-Manager/releases/latest`)
-        .then((res) => res.json())
-        .then((body) => {
-          const zipAssets = (
-            body.assets as Array<{
-              name?: string;
-              content_type: string;
-              browser_download_url: string;
-            }>
-          ).filter(
+        const latestTag = body.tag_name ? body.tag_name.replace(/^v/i, "") : undefined;
+        const isAvailable = latestTag && semver.valid(latestTag) && semver.valid(version) && semver.gt(latestTag, version);
+
+        if (isAvailable && body.assets) {
+          const zipAssets = body.assets.filter(
             (asset) =>
               asset.content_type === "application/x-zip-compressed" ||
               asset.content_type === "application/zip" ||
@@ -402,8 +406,10 @@ if (!gotTheLock) {
           }
 
           if (body.html_url) modUpdatedExists.releaseNotesURL = body.html_url;
-        })
-        .catch();
+        }
+      } catch (err) {
+        console.error("Failed to check for updates:", err);
+      }
 
       return modUpdatedExists;
     });

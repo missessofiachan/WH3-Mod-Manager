@@ -4,7 +4,7 @@ import * as VDF from "@node-steam/vdf";
 import * as dumbfs from "fs";
 import appData from "./appData";
 import fetch from "electron-fetch";
-import { zonedTimeToUtc } from "date-fns-tz";
+import { fromZonedTime } from "date-fns-tz";
 import * as nodePath from "path";
 import * as fsExtra from "fs-extra";
 import { gameToGameFolder, gameToManifest, gameToSteamId, SupportedGames } from "./supportedGames";
@@ -23,6 +23,30 @@ const wh3mmWorkshopId = "2845454582";
 export const WORKSHOP_METADATA_RETRY_DELAYS_MS = [5_000, 30_000] as const;
 
 export const getWorkshopMetadataRetryDelay = (retryIndex: number) => WORKSHOP_METADATA_RETRY_DELAYS_MS[retryIndex];
+
+export function parseSteamWorkshopDate(steamDate: string, referenceDate = new Date()): number | undefined {
+  if (!steamDate) return undefined;
+  const dateFragments = steamDate
+    .replace(",", "")
+    .replace("@", "")
+    .split(" ")
+    .filter((str) => str !== "");
+  if (dateFragments.length < 3) return undefined;
+
+  const hasYear = dateFragments.length > 3;
+  const day = dateFragments[0];
+  const date = dateFragments.join(" ");
+  const hours = dateFragments[hasYear ? 3 : 2].split(":")[0];
+  const hourFormat = hours.length > 1 ? "hh" : "h";
+  const dayFormat = day.length > 1 ? "dd" : "d";
+
+  const format = dayFormat + " MMM " + (hasYear ? "yyyy " : "") + hourFormat + ":mma";
+  const parsedDate = parse(date, format, referenceDate);
+  if (isNaN(parsedDate.getTime())) return undefined;
+
+  const result = fromZonedTime(parsedDate, "America/Phoenix");
+  return getTime(result);
+}
 
 export function fetchModData(
   ids: string[],
@@ -247,29 +271,8 @@ export function fetchModData(
               // log(humanName);
               // log(timeMatches);
               const steamDate = timeMatches[2] ?? timeMatches[1]; // if mod was never updated, just uploaded
-              //steamDate = "2 Oct, 2021 @ 11:25am";
-
               if (steamDate) {
-                const dateFragments = steamDate
-                  .replace(",", "")
-                  .replace("@", "")
-                  .split(" ")
-                  .filter((str) => str !== "");
-                const hasYear = dateFragments.length > 3;
-
-                const day = dateFragments[0];
-                const date = dateFragments.join(" ");
-                const hours = dateFragments[hasYear ? 3 : 2].split(":")[0];
-                const hourFormat = hours.length > 1 ? "hh" : "h";
-                const dayFormat = day.length > 1 ? "dd" : "d";
-
-                // log(`DATE: ${date}`);
-                const format = dayFormat + " MMM " + (hasYear ? "yyyy " : "") + hourFormat + ":mma";
-                // log(`date: ` + date);
-                // log(`FORMAT: ` + format);
-                const result = zonedTimeToUtc(parse(date, format, new Date()), "America/Phoenix");
-                // log(result);
-                lastChanged = getTime(result);
+                lastChanged = parseSteamWorkshopDate(steamDate);
               }
             }
           } catch (err) {

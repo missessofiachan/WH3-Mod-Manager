@@ -29,10 +29,18 @@ yarn start
 yarn make
 ```
 
+On Linux without Debian packaging tools (`dpkg`/`fakeroot`), build a portable zip or native unpacked folder:
+
+```bash
+yarn make:zip        # Produces a distributable zip in out/make/zip/linux/x64/
+# or
+yarn package:linux   # Packages unpacked binary in out/wh3mm-linux-x64/
+```
+
 On Linux, build from an x86-64 desktop with Steam installed. Steam should be running when the manager
 uses Workshop features. Native Steam, Flatpak Steam, and Snap Steam are supported for game launching;
 Protontricks is an optional fallback. The Linux build currently does not include an ARM64 Steamworks addon.
 
-I build with yarn 1.22.22 and node v20.18.1. You can try using `yarn install --frozen-lockfile --ignore-engines` if you end up with dependency errors.
+Build with yarn 1.22.22 and node 24 (or use `yarn install --frozen-lockfile --ignore-engines`).
 
 Note that yarn start does hot-reloading, but hot-reloading files related to the main Electron process (basically index.ts, the stuff related to the OS and files) won't work but hot-reloading the renderer process works (basically everything user facing).
