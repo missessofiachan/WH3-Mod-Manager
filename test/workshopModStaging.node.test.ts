@@ -74,6 +74,22 @@ describe("Workshop mod staging", () => {
     ]);
   });
 
+  it("handles modDirectory that already contains pathPrefix without duplicating it or breaking dataFolder omission", () => {
+    const lines = buildWorkshopStagingWorkingDirectoryLines({
+      dataFolder: "/game/data",
+      destinationPath: "/game/whmm_copied_mods",
+      stagedModNames: [],
+      realDataPackNames: [],
+      pathPrefix: "Z:",
+      mods: [
+        { name: "vanilla.pack", modDirectory: "Z:/game/data", isWorkshop: false },
+        { name: "custom.pack", modDirectory: "Z:/custom/mods", isWorkshop: true },
+      ],
+    });
+
+    expect(lines).toEqual(['add_working_directory "Z:/custom/mods";']);
+  });
+
   it("stages enabled Workshop mods and preserves the source mtime", async () => {
     const gameFolder = makeDirectory();
     const sourcePath = writeSourceMod(makeDirectory(), "alpha.pack", "alpha");

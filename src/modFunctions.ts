@@ -321,7 +321,7 @@ export async function getDataMod(filePath: string, log: (msg: string) => void): 
   let size = -1;
   let isSymbolicLink = false;
   try {
-    const stats = await dumbfs.lstatSync(filePath);
+    const stats = await dumbfs.promises.lstat(filePath);
     lastChangedLocal = stats.mtimeMs;
     size = stats.size;
     isSymbolicLink = stats.isSymbolicLink();
@@ -332,12 +332,12 @@ export async function getDataMod(filePath: string, log: (msg: string) => void): 
   let doesThumbnailExist = false;
   let thumbnailPath = nodePath.join(dataPath, fileName.replace(/\.pack$/, ".png"));
   try {
-    await dumbfs.accessSync(thumbnailPath, dumbfs.constants.R_OK);
+    await dumbfs.promises.access(thumbnailPath, dumbfs.constants.R_OK);
     doesThumbnailExist = true;
   } catch {
     try {
       thumbnailPath = nodePath.join(dataPath, fileName.replace(/\.pack$/, ".jpg"));
-      await dumbfs.accessSync(thumbnailPath, dumbfs.constants.R_OK);
+      await dumbfs.promises.access(thumbnailPath, dumbfs.constants.R_OK);
       doesThumbnailExist = true;
     } catch {
       // Ignore missing JPG thumbnails; the PNG fallback is handled above.
@@ -353,12 +353,11 @@ export async function getDataMod(filePath: string, log: (msg: string) => void): 
 
   if (doesThumbnailExist) registerModThumbnailPath(thumbnailPath);
 
-  const linuxBit = process.platform === "linux" ? "Z:" : "";
   const mod: Mod = {
     humanName: "",
     name: fileName,
     path: filePath,
-    modDirectory: linuxBit + nodePath.dirname(filePath),
+    modDirectory: nodePath.dirname(filePath),
     imgPath: doesThumbnailExist ? thumbnailPath : "",
     workshopId: fileName,
     isEnabled: false,
@@ -413,7 +412,7 @@ const getDataMods = async (gameDir: string, log: (msg: string) => void, subFolde
 
   appData.allVanillaPackNames = new Set(vanillaPacks.filter((pack) => pack.endsWith(".pack")));
 
-  const files = await dumbfs.readdirSync(dataPath, { withFileTypes: true });
+  const files = await dumbfs.promises.readdir(dataPath, { withFileTypes: true });
 
   const dataModsPromises = files
     .filter(
@@ -614,7 +613,7 @@ export async function getContentModInFolder(
     subscriptionTimes?.get(contentSubFolderName) ??
     (await getWorkshopSubscriptionTimes(appData.currentGame, log)).get(contentSubFolderName);
 
-  const files = await dumbfs.readdirSync(contentSubfolder, {
+  const files = await dumbfs.promises.readdir(contentSubfolder, {
     withFileTypes: true,
   });
 
@@ -627,7 +626,7 @@ export async function getContentModInFolder(
   let size = -1;
   let isSymbolicLink = false;
   try {
-    const stats = await dumbfs.lstatSync(nodePath.join(contentSubfolder, pack.name));
+    const stats = await dumbfs.promises.lstat(nodePath.join(contentSubfolder, pack.name));
     lastChangedLocal = stats.mtimeMs;
     size = stats.size;
     isSymbolicLink = stats.isSymbolicLink();
@@ -788,7 +787,7 @@ export async function getMods(log: (msg: string) => void): Promise<Mod[]> {
   );
 
   if (appData.currentGame != "shogun2") {
-    const files = await dumbfs.readdirSync(contentFolder, { withFileTypes: true });
+    const files = await dumbfs.promises.readdir(contentFolder, { withFileTypes: true });
     const newMods = files
       .filter((file) => file.isDirectory())
       .map(async (contentSubFolder) => {

@@ -36,7 +36,7 @@ export const getSaveFiles = async () => {
   const folderPath = getSavesFolderPath();
 
   try {
-    files = fs.readdirSync(folderPath, { withFileTypes: true });
+    files = await fs.promises.readdir(folderPath, { withFileTypes: true });
   } catch (e) {
     console.error(e);
 
@@ -47,7 +47,7 @@ export const getSaveFiles = async () => {
     if (!saves.find((iterSave) => iterSave.name === saveFile.name)) {
       let lastChanged: number | undefined;
       try {
-        lastChanged = await fs.statSync(path.join(folderPath, saveFile.name)).mtimeMs;
+        lastChanged = (await fs.promises.stat(path.join(folderPath, saveFile.name))).mtimeMs;
       } catch (e) {
         console.log(e);
       }
@@ -59,11 +59,11 @@ export const getSaveFiles = async () => {
 };
 
 const addNewSave = async function (savePath: string) {
-  const basename = path.win32.basename(savePath);
+  const basename = path.basename(savePath);
   if (!saves.find((iterSave) => iterSave.name === basename)) {
     let lastChanged: number | undefined;
     try {
-      lastChanged = await fs.statSync(savePath).mtimeMs;
+      lastChanged = (await fs.promises.stat(savePath)).mtimeMs;
     } catch (e) {
       console.log(e);
     }
@@ -72,7 +72,7 @@ const addNewSave = async function (savePath: string) {
 };
 
 const removeSave = function (savePath: string) {
-  const basename = path.win32.basename(savePath);
+  const basename = path.basename(savePath);
   saves = saves.filter((iterSave) => iterSave.name !== basename);
 };
 

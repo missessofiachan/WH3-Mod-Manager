@@ -710,8 +710,12 @@ export const buildWorkshopStagingWorkingDirectoryLines = ({
     const name = comparableName(mod.name);
     if (mod.isInModding) continue;
     if (mod.isWorkshop && (stagedNames.has(name) || dataNames.has(name))) continue;
-    if (nodePath.relative(dataFolder, mod.modDirectory) === "") continue;
-    workingDirectories.add(`${pathPrefix}${mod.modDirectory}`);
+    const cleanModDir =
+      pathPrefix && mod.modDirectory.startsWith(pathPrefix)
+        ? mod.modDirectory.slice(pathPrefix.length)
+        : mod.modDirectory;
+    if (nodePath.relative(dataFolder, cleanModDir) === "") continue;
+    workingDirectories.add(`${pathPrefix}${cleanModDir}`);
   }
 
   return [...workingDirectories].map((directory) => `add_working_directory "${directory}";`);
